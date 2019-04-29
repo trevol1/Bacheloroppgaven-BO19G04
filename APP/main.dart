@@ -6,25 +6,36 @@ import 'package:http/http.dart' as http;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import 'package:flutter_html/flutter_html.dart';
-import 'package:html/dom.dart' as dom;
 
-import 'package:zoomable_image/zoomable_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/services.dart';
 import 'package:splashscreen/splashscreen.dart';
 
-const API_URL = "http://10.0.2.2/wordpress/api/";
-//const API_URL = "https://itstud.hiof.no/~vegardbe/wordpress/api/";
+// SLUGS (også kalt "permanent lenke" i wordpress) som brukes for kategorier og sider
+const SLUG_PROGRAMS = "app_sanger";
+const SLUG_ALLSANG = "artister-allsang-pa-grensen";
+const SLUG_ADKOMST_FOT = "app_fot";
+const SLUG_ADKOMST_TOG = "app_tog";
+const SLUG_ADKOMST_BUSS = "app_buss";
+const SLUG_ADKOMST_BIL = "app_bil";
+const SLUG_REKLAME = "app_reklame";
 
-const WP_URL = "https://www.allsangpagrensen.no/";
-const LOGO_URL = 'https://www.allsangpagrensen.no/wp-content/uploads/2014/04/allsanglogo-600.png';
+// Nett-URL vi kommuniserer med
+const API_URL = "https://allsangpagrensen.no/api/"; // Live Allsang på Grensen side
+//const API_URL = "http://10.0.2.2/wordpress/api/"; // Testing gjennom Android Studio med lokal Wordpress
+//const API_URL = "https://itstud.hiof.no/~vegardbe/wordpress/api/"; // Testing på live Wordpress
 
-const ARENA_URL = "https://www.allsangpagrensen.no/wp-content/uploads/2018/06/arenakart.png";
+const WP_URL = "https://www.allsangpagrensen.no/"; // For innebygd innhold uten en adresse
+const LOGO_URL = 'https://www.allsangpagrensen.no/wp-content/uploads/2014/04/allsanglogo-600.png'; // Hovedlogo
 
-const TICKETMASTER_URL = 'http://www.ticketmaster.no/artist/allsang-pa-grensen-billetter/936441';
+const ARENA_URL = "https://www.allsangpagrensen.no/wp-content/uploads/2018/06/arenakart.png"; // Arenakart under "Kart"-fanen
 
+const TICKETMASTER_URL = 'http://www.ticketmaster.no/artist/allsang-pa-grensen-billetter/936441'; // Lenke som åpnes ved Billett-knappen
+
+// Utviklings-debugging, skrur av/på loggføring
 const ENABLE_DEBUGGING = false;
 
+// Farger, basert på Allsang på Grensen sin referanse
 const PRIMARY_DARKBLUE = const Color(0xFF4EA3B7);
 const PRIMARY_BLUE = const Color(0xFF7ED3F7);
 const PRIMARY_GREEN = const Color(0xFF009445);
@@ -32,6 +43,7 @@ const PRIMARY_GREEN2 = const Color(0xFF8CC63F);
 const PRIMARY_YELLOW = const Color(0xFFFFF200);
 const PRIMARY_WHITE = const Color(0xFFFFFFFF);
 
+// Simulerte tekst-skygger, brukt i forskjellige steder
 const textShadows = [
   Shadow( // bottomLeft
       offset: Offset(-1.5, -1.5),
@@ -74,6 +86,7 @@ void main() {
   ));
 }
 
+/// Grunnet hvordan innhold hentes fra wordpress må HTML om-formateres
 String formatHtmlImages(String data) {
   String originalData = data;
 
@@ -90,6 +103,7 @@ String formatHtmlImages(String data) {
   return data;
 }
 
+/// Lokalt arbeid krever om-dirigering fra vanlig "localhost" til en spesiell IP i Android Studio
 String formatLocalhostString(String url) {
   String originalUrl = url;
 
@@ -103,6 +117,7 @@ String formatLocalhostString(String url) {
   return url;
 }
 
+/// Wrapper for HTML, automatisk formatering og URL-lenking
 class CustomHtml extends Html {
   static void openLink(url) async {
     if (await canLaunch(url)) {
@@ -121,6 +136,7 @@ class CustomHtml extends Html {
   );
 }
 
+/// Splash-skjermen
 class LoadingScreen extends StatefulWidget {
   @override
   _LoadingScreen createState() => new _LoadingScreen();
@@ -142,6 +158,7 @@ class _LoadingScreen extends State<LoadingScreen> {
   }
 }
 
+/// Åpner Ticketmaster lenken i nettleseren
 _gotoTicketmaster() async {
   const url = TICKETMASTER_URL;
   if (await canLaunch(url)) {
@@ -150,6 +167,7 @@ _gotoTicketmaster() async {
   }
 }
 
+/// Forside (hjemmeside)
 class MyHomePage extends StatefulWidget {
   MyHomePage({Key key}) : super(key: key);
 
@@ -225,6 +243,7 @@ List<Widget> programPages = new List<Widget>();
 
 int generating = 0;
 
+/// Henter data fra APIet
 Future<Map> fetchData(String apiUrl, [bool full = false]) async {
   String url = apiUrl;
   if (!full) {
@@ -236,6 +255,7 @@ Future<Map> fetchData(String apiUrl, [bool full = false]) async {
   if (response.statusCode == 200) {
     return jsonDecode(response.body);
   } else {
+    log('Failed to fetch data from ' + url);
     throw Exception('Failed to fetch data from ' + url);
   }
 }
@@ -276,6 +296,7 @@ String getThumbnailURL(Map<String, dynamic> postData) {
   return "";
 }
 
+/// Genererer program-sider (rekursivt)
 void generateProgram(_data, n) {
   log("Generating program no. " + n.toString());
   Map<String, dynamic> data = _data;
@@ -299,6 +320,7 @@ void generateProgram(_data, n) {
   }
 }
 
+/// Reklame Widget som vises der reklamen opptrer
 Widget reklameWidget = Card(
   child: ListTile(
     title: Text(""),
@@ -307,14 +329,15 @@ Widget reklameWidget = Card(
   ),
 );
 
-
+/// Oppdaterer reklamen fra nett
 void updateAds() {
   void cbAds(postsData) {
     reklameWidget = new ReklameBanner(postsData['posts']);
   }
-  fetchData("get_category_posts/?slug=reklame").then(cbAds);
+  fetchData("get_category_posts/?slug=" + SLUG_REKLAME).then(cbAds);
 }
 
+/// Reklamens Widget-klasse, egendefinert widget
 class ReklameBanner extends StatelessWidget {
   String title;
   String image;
@@ -348,6 +371,7 @@ class ReklameBanner extends StatelessWidget {
   }
 }
 
+// Alle akomst-sidene og titler
 Widget adkomstBil = new Text("");
 Widget adkomstBilTitle = new Text("Bil");
 Widget adkomstBuss = new Text("");
@@ -357,7 +381,7 @@ Widget adkomstTogTitle = new Text("Tog");
 Widget adkomstFot = new Text("");
 Widget adkomstFotTitle = new Text("Til fots");
 
-
+/// Oppdaterer alle 4 adkomsts-sider
 void updateAdkomst() {
   void cbAdkomstBil(Map<dynamic, dynamic> postsData) {
     if (postsData.containsKey("posts")) {
@@ -365,7 +389,7 @@ void updateAdkomst() {
       adkomstBilTitle = new Text(postsData['posts'][0]['title_plain']);
     }
   }
-  fetchData("get_category_posts/?slug=bil").then(cbAdkomstBil);
+  fetchData("get_category_posts/?slug=" + SLUG_ADKOMST_BIL).then(cbAdkomstBil);
 
   void cbAdkomstBuss(Map<dynamic, dynamic> postsData) {
     if (postsData.containsKey("posts")) {
@@ -373,7 +397,7 @@ void updateAdkomst() {
       adkomstBussTitle = new Text(postsData['posts'][0]['title_plain']);
     }
   }
-  fetchData("get_category_posts/?slug=buss").then(cbAdkomstBuss);
+  fetchData("get_category_posts/?slug=" + SLUG_ADKOMST_BUSS).then(cbAdkomstBuss);
 
   void cbAdkomstTog(Map<dynamic, dynamic> postsData) {
     if (postsData.containsKey("posts")) {
@@ -381,7 +405,7 @@ void updateAdkomst() {
       adkomstTogTitle = new Text(postsData['posts'][0]['title_plain']);
     }
   }
-  fetchData("get_category_posts/?slug=tog").then(cbAdkomstTog);
+  fetchData("get_category_posts/?slug=" + SLUG_ADKOMST_TOG).then(cbAdkomstTog);
 
   void cbAdkomstFot(Map<dynamic, dynamic> postsData) {
     if (postsData.containsKey("posts")) {
@@ -389,33 +413,38 @@ void updateAdkomst() {
       adkomstFotTitle = new Text(postsData['posts'][0]['title_plain']);
     }
   }
-  fetchData("get_category_posts/?slug=fot").then(cbAdkomstFot);
+  fetchData("get_category_posts/?slug=" + SLUG_ADKOMST_FOT).then(cbAdkomstFot);
 }
 
+/// Allsang-sidens innhold
 Widget allsang = new Text("Forside");
 
+/// Oppdaterer Allsang-siden / forsiden
 void updateAllsang() {
   log("Updating allsang");
 
   void cbAllsang(postsData) {
     allsang = new CustomHtml(data: postsData['page']['content']);
   }
-  fetchData("https://www.allsangpagrensen.no/api/get_page/?slug=artister-allsang-pa-grensen", true).then(cbAllsang);
+  fetchData("https://www.allsangpagrensen.no/api/get_page/?slug=" + SLUG_ALLSANG, true).then(cbAllsang);
 }
 
-void cbPrograms(postsData) {
-  programPages.clear();
-  generateProgram(postsData, 0);
-}
-
+/// Oppdaterer alle sider med innhold fra APIet
 void updatePrograms() {
   log("Updating programs");
-  fetchData("get_category_posts/?slug=dager").then(cbPrograms);
+
+  void cbPrograms(postsData) {
+    programPages.clear();
+    generateProgram(postsData, 0);
+  }
+
+  fetchData("get_category_posts/?slug=" + SLUG_PROGRAMS).then(cbPrograms);
   updateAdkomst();
   updateAllsang();
   updateAds();
 }
 
+/// Widget som tillater tekst over bilder
 Widget OverlaidImage(String url, Widget overlay) {
   return new Container(
       constraints: new BoxConstraints.expand(
@@ -613,6 +642,7 @@ class ProgramFeedState extends State<ProgramFeed> {
   }
 }
 
+/// Google Maps widget
 class MapSample extends StatefulWidget {
   @override
   State<MapSample> createState() => MapSampleState();
@@ -659,6 +689,7 @@ class MapSampleState extends State<MapSample> {
   }
 }
 
+/// Adkomst-fane
 class AdkomstPage extends StatefulWidget {
   AdkomstPage({Key key}) : super(key: key);
   @override
