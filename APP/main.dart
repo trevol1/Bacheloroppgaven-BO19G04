@@ -12,7 +12,7 @@ import 'package:flutter/services.dart';
 import 'package:splashscreen/splashscreen.dart';
 
 // SLUGS (også kalt "permanent lenke" i wordpress) som brukes for kategorier og sider
-const SLUG_PROGRAMS = "app_sanger";
+const SLUG_PROGRAMS = "app_dager";
 const SLUG_ALLSANG = "artister-allsang-pa-grensen";
 const SLUG_ADKOMST_FOT = "app_fot";
 const SLUG_ADKOMST_TOG = "app_tog";
@@ -21,8 +21,8 @@ const SLUG_ADKOMST_BIL = "app_bil";
 const SLUG_REKLAME = "app_reklame";
 
 // Nett-URL vi kommuniserer med
-const API_URL = "https://allsangpagrensen.no/api/"; // Live Allsang på Grensen side
-//const API_URL = "http://10.0.2.2/wordpress/api/"; // Testing gjennom Android Studio med lokal Wordpress
+//const API_URL = "https://allsangpagrensen.no/api/"; // Live Allsang på Grensen side
+const API_URL = "http://10.0.2.2/wordpress/api/"; // Testing gjennom Android Studio med lokal Wordpress
 //const API_URL = "https://itstud.hiof.no/~vegardbe/wordpress/api/"; // Testing på live Wordpress
 
 const WP_URL = "https://www.allsangpagrensen.no/"; // For innebygd innhold uten en adresse
@@ -33,7 +33,7 @@ const ARENA_URL = "https://www.allsangpagrensen.no/wp-content/uploads/2018/06/ar
 const TICKETMASTER_URL = 'http://www.ticketmaster.no/artist/allsang-pa-grensen-billetter/936441'; // Lenke som åpnes ved Billett-knappen
 
 // Utviklings-debugging, skrur av/på loggføring
-const ENABLE_DEBUGGING = false;
+const ENABLE_DEBUGGING = true;
 
 // Farger, basert på Allsang på Grensen sin referanse
 const PRIMARY_DARKBLUE = const Color(0xFF4EA3B7);
@@ -304,6 +304,7 @@ void generateProgram(_data, n) {
     List<dynamic> posts = data['posts'];
     if (posts.length > n) {
       Map<String, dynamic> program = posts[n];
+      log("Generating program for " + program['title_plain']);
       fetchData("get_category_posts/?slug=" + program['tags'][0]['title']).then((postsData) =>
       {
         log("Generating posts"),
